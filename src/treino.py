@@ -7,85 +7,92 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from extracao import carregar_dados
 from adaline import Adaline
 
-# Parâmetros
-TAXA_APRENDIZADO = 0.01
-EPOCAS = 100
-N_LETRAS = 26
+# ── Parâmetros ─────────────────────────────────────────────────────────────
+TAXA_APRENDIZADO = 0.001   # menor = mais estável com mais dados
+EPOCAS           = 300     # mais épocas para compensar mais amostras
+N_LETRAS         = 26
+# ───────────────────────────────────────────────────────────────────────────
 
 def gerar_rotulo_one_vs_all(rotulos, letra_alvo):
-    """
-    Para cada neurônio, gera saída bipolar:
-    +1 se for a letra alvo, -1 caso contrário
-    """
-    return np.where(rotulos == letra_alvo, 1, -1)
+    """Bipolar: +1 se for a letra alvo, -1 caso contrário."""
+    return np.where(rotulos == letra_alvo, 1.0, -1.0)
 
 
 def treinar_rede(entradas, rotulos):
-    n_entradas = entradas.shape[1]  # 784
-    redes = []
+    n_entradas = entradas.shape[1]
+    redes      = []
 
-    print(f"\nIniciando treinamento One-vs-All")
-    print(f"  Neurônios: {N_LETRAS}")
-    print(f"  Taxa de aprendizado: {TAXA_APRENDIZADO}")
-    print(f"  Épocas: {EPOCAS}")
-    print(f"  Tamanho do vetor de entrada: {n_entradas}\n")
+    print(f"\n{'='*50}")
+    print(f"  Treinamento One-vs-All")
+    print(f"  Neurônios      : {N_LETRAS}")
+    print(f"  Taxa aprendiz. : {TAXA_APRENDIZADO}")
+    print(f"  Épocas         : {EPOCAS}")
+    print(f"  Amostras treino: {len(entradas)}")
+    print(f"  Vetor entrada  : {n_entradas} features")
+    print(f"{'='*50}\n")
 
     for i in range(N_LETRAS):
         letra = chr(65 + i)
-        print(f"--- Treinando neurônio {i+1}/26: Letra {letra} ---")
+        n_pos = int(np.sum(rotulos == i))
+        print(f"[{i+1:02d}/26] Neurônio letra {letra}  ({n_pos} amostra(s) positiva(s))")
 
-        # Cria um Adaline para essa letra
         rede = Adaline(n_entradas, TAXA_APRENDIZADO)
-
-        # Gera rótulos: +1 para essa letra, -1 para as outras
-        rotulos_binarios = gerar_rotulo_one_vs_all(rotulos, i)
-
-        # Treina
-        rede.treinar(entradas, rotulos_binarios, EPOCAS)
-
+        rotulos_bin = gerar_rotulo_one_vs_all(rotulos, i)
+        rede.treinar(entradas, rotulos_bin, EPOCAS)
         redes.append(rede)
+        print()
 
     return redes
 
 
-def salvar_modelo(redes):
-    os.makedirs("modelos", exist_ok=True)
+def salvar_modelo(redes, pasta="modelos"):
+    os.makedirs(pasta, exist_ok=True)
 
     todos_pesos = np.array([r.pesos for r in redes])
-    todos_bias = np.array([r.bias for r in redes])
+    todos_bias  = np.array([r.bias  for r in redes])
 
-    np.save("modelos/pesos.npy", todos_pesos)
-    np.save("modelos/bias.npy", todos_bias)
+    np.save(os.path.join(pasta, "pesos.npy"), todos_pesos)
+    np.save(os.path.join(pasta, "bias.npy"),  todos_bias)
 
-    print("\nModelo salvo em modelos/pesos.npy e modelos/bias.npy")
+    print(f"Modelo salvo em '{pasta}/pesos.npy' e '{pasta}/bias.npy'")
 
 
-if __name__ == "__main__":
-    # 1. Carrega e pré-processa as imagens
-    print("Carregando imagens...")
-    entradas, rotulos = carregar_dados()
-
-    # 2. Treina a rede
-    redes = treinar_rede(entradas, rotulos)
-
-    # 3. Salva os pesos
-    salvar_modelo(redes)
-
-    # 4. Teste rápido no próprio conjunto de treino
-    print("\n--- Teste rápido no conjunto de treino ---")
+def avaliar(redes, entradas, rotulos):
     acertos = 0
-    for i, (x, rotulo_real) in enumerate(zip(entradas, rotulos)):
-        saidas = [r.prever(x) for r in redes]
-        previsto = np.argmax(saidas)  # neurônio com maior saída linear
+    erros_det = []
 
-        letra_real = chr(65 + rotulo_real)
-        letra_prevista = chr(65 + previsto)
+    for x, rotulo_real in zip(entradas, rotulos):
+        saidas  = [r.prever(x) for r in redes]
+        previsto = int(np.argmax(saidas))
 
         if previsto == rotulo_real:
             acertos += 1
-            print(f"  {i+1}.png → Real: {letra_real} | Previsto: {letra_prevista} ✓")
         else:
-            print(f"  {i+1}.png → Real: {letra_real} | Previsto: {letra_prevista} ✗")
+            erros_det.append((chr(65+rotulo_real), chr(65+previsto)))
 
     acuracia = acertos / len(entradas) * 100
     print(f"\nAcurácia no treino: {acertos}/{len(entradas)} = {acuracia:.1f}%")
+
+    if erros_det:
+        print("Erros detectados:")
+        for real, prev in erros_det:
+            print(f"  Real={real}  Previsto={prev}")
+
+    return acuracia
+
+
+if __name__ == "__main__":
+    # Muda para o diretório raiz do projeto (onde fica a pasta 'dados/')
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(raiz)
+
+    print("Carregando imagens...")
+    entradas, rotulos = carregar_dados()
+
+    if len(entradas) == 0:
+        print("Nenhuma imagem encontrada. Verifique a pasta 'dados/treino/'.")
+        sys.exit(1)
+
+    redes = treinar_rede(entradas, rotulos)
+    salvar_modelo(redes)
+    avaliar(redes, entradas, rotulos)
