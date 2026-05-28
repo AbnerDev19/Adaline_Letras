@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import os
 
-TAMANHO = 28          # 28x28 pixels
+TAMANHO = 32          # Alterado de 28 para 32 pixels
 PASTA_TREINO = "dados/treino/"
 
 def preprocessar_imagem(caminho):
@@ -45,7 +45,7 @@ def preprocessar_imagem(caminho):
     else:
         letra_centralizada = binaria
 
-    # 5. Redimensionar para 28x28
+    # 5. Redimensionar para 32x32 usando a variável TAMANHO
     redim = cv2.resize(letra_centralizada, (TAMANHO, TAMANHO), interpolation=cv2.INTER_AREA)
 
     # 6. Normalizar 0.0–1.0

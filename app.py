@@ -56,8 +56,8 @@ def preprocessar(img_array):
         # Caso a imagem seja completamente vazia/branca
         letra_centralizada = binaria
 
-    # 5. Redimensionar para 28x28 usando interpolação de área (ideal para redução)
-    redim = cv2.resize(letra_centralizada, (28, 28), interpolation=cv2.INTER_AREA)
+    # 5. Redimensionar para 32x32 usando interpolação de área (ideal para redução)
+    redim = cv2.resize(letra_centralizada, (32, 32), interpolation=cv2.INTER_AREA)
     
     # 6. Normalizar os valores dos pixels para a escala de 0.0 a 1.0 (formato esperado pela rede)
     normalizada = redim / 255.0
@@ -453,7 +453,7 @@ def prever_rota():
 
         return jsonify({
             "letra":  letra,
-            "indice": int(indice), # Convertido explicitamente para int padrão Python
+            "indice": int(indice),
             "saidas": [round(float(s), 4) for s in saidas]
         })
 

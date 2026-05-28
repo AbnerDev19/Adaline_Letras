@@ -8,8 +8,8 @@ from extracao import carregar_dados
 from adaline import Adaline
 
 # ── Parâmetros ─────────────────────────────────────────────────────────────
-TAXA_APRENDIZADO = 0.001   # menor = mais estável com mais dados
-EPOCAS           = 300     # mais épocas para compensar mais amostras
+TAXA_APRENDIZADO = 0.0001  # menor = mais estável com mais dados
+EPOCAS           = 2000   # mais épocas para compensar mais amostras
 N_LETRAS         = 26
 # ───────────────────────────────────────────────────────────────────────────
 
